@@ -9,11 +9,11 @@ const OTP = require("./models/otp.model");
 const app = express();
 app.use(bodyParser.json());
 
-// ✅ MongoDB Connection (SIRF YAHI BLOCK RAKHO)
+// ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected");
-    console.log("Current DB in use:", mongoose.connection.name); // ← Now shows actual DB
+    console.log("Current DB in use:", mongoose.connection.name);
   })
   .catch(err => console.log("MongoDB error:", err));
 
@@ -25,17 +25,17 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS
   }
 });
-// generate 4 digite code
+
+// ✅ OTP Generator Function
 function generateOTP() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
-
 
 // ✅ Send OTP API
 app.post("/send-otp", async (req, res) => {
   const { email } = req.body;
   const otpCode = generateOTP();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 1 minute expiry
 
   try {
     await transporter.sendMail({
@@ -45,7 +45,6 @@ app.post("/send-otp", async (req, res) => {
       text: `Your OTP is: ${otpCode}`
     });
 
-    // ✅ Save OTP in MongoDB
     await OTP.create({
       email,
       otpCode,
@@ -73,7 +72,7 @@ app.post("/verify-otp", async (req, res) => {
       return res.status(400).send("OTP expired");
     }
 
-    await OTP.deleteOne({ _id: record._id }); // Optional
+    await OTP.deleteOne({ _id: record._id });
     return res.status(200).send("OTP verified successfully");
   } catch (err) {
     console.error("Verify OTP error:", err);
@@ -81,7 +80,8 @@ app.post("/verify-otp", async (req, res) => {
   }
 });
 
-// ✅ Start Server
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+// ✅ Start Server (Correct PORT handling)
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
